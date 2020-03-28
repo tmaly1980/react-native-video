@@ -69,7 +69,7 @@ Run `react-native link react-native-video` to link the react-native-video librar
 
 #### Using CocoaPods (required to enable caching)
 
-Setup your Podfile like it is described in the [react-native documentation](https://facebook.github.io/react-native/docs/integration-with-existing-apps#configuring-cocoapods-dependencies). 
+Setup your Podfile like it is described in the [react-native documentation](https://facebook.github.io/react-native/docs/integration-with-existing-apps#configuring-cocoapods-dependencies).
 
 Depending on your requirements you have to choose between the two possible subpodspecs:
 
@@ -140,7 +140,7 @@ project(':react-native-video').projectDir = new File(rootProject.projectDir, '..
 
 #### **android/app/build.gradle**
 
-From version >= 5.0.0, you have to apply these changes:
+From version >= 5.0.0, you have to apply this changes:
 
 ```diff
 dependencies {
@@ -184,34 +184,52 @@ protected List<ReactPackage> getPackages() {
 
 ### Windows installation
 <details>
-  <summary>Windows RNW C++/WinRT details</summary>
+  <summary>Windows details</summary>
 
 Make the following additions to the given files manually:
 
 #### **windows/myapp.sln**
 
-Add the `ReactNativeVideoCPP` project to your solution.
+Add the `ReactNativeVideo` project to your solution.
 
-1. Open the solution in Visual Studio 2019
+1. Open the solution in Visual Studio 2015
 2. Right-click Solution icon in Solution Explorer > Add > Existing Project
-   Select `node_modules\react-native-video\windows\ReactNativeVideoCPP\ReactNativeVideoCPP.vcxproj`
+  * UWP: Select `node_modules\react-native-video\windows\ReactNativeVideo\ReactNativeVideo.csproj`
+  * WPF: Select `node_modules\react-native-video\windows\ReactNativeVideo.Net46\ReactNativeVideo.Net46.csproj`
 
-#### **windows/myapp/myapp.vcxproj**
+#### **windows/myapp/myapp.csproj**
 
-Add a reference to `ReactNativeVideoCPP` to your main application project. From Visual Studio 2019:
+Add a reference to `ReactNativeVideo` to your main application project. From Visual Studio 2015:
 
 1. Right-click main application project > Add > Reference...
-  Check `ReactNativeVideoCPP` from Solution Projects.
+  * UWP: Check `ReactNativeVideo` from Solution Projects.
+  * WPF: Check `ReactNativeVideo.Net46` from Solution Projects.
 
-2. Modify files below to add the video package providers to your main application project
-#### **pch.h**
+#### **MainPage.cs**
 
-Add `#include "winrt/ReactNativeVideoCPP.h"`.
+Add the `ReactVideoPackage` class to your list of exported packages.
+```cs
+using ReactNative;
+using ReactNative.Modules.Core;
+using ReactNative.Shell;
+using ReactNativeVideo; // <-- Add this
+using System.Collections.Generic;
+...
 
-#### **app.cpp**
+        public override List<IReactPackage> Packages
+        {
+            get
+            {
+                return new List<IReactPackage>
+                {
+                    new MainReactPackage(),
+                    new ReactVideoPackage(), // <-- Add this
+                };
+            }
+        }
 
-Add `PackageProviders().Append(winrt::ReactNativeVideoCPP::ReactPackageProvider());` before `InitializeComponent();`.
-
+...
+```
 </details>
 
 ### react-native-dom installation
@@ -274,10 +292,8 @@ var styles = StyleSheet.create({
 ### Configurable props
 * [allowsExternalPlayback](#allowsexternalplayback)
 * [audioOnly](#audioonly)
-* [automaticallyWaitsToMinimizeStalling](#automaticallyWaitsToMinimizeStalling)
 * [bufferConfig](#bufferconfig)
 * [controls](#controls)
-* [disableFocus](#disableFocus)
 * [filter](#filter)
 * [filterEnabled](#filterEnabled)
 * [fullscreen](#fullscreen)
@@ -298,6 +314,7 @@ var styles = StyleSheet.create({
 * [posterResizeMode](#posterresizemode)
 * [progressUpdateInterval](#progressupdateinterval)
 * [rate](#rate)
+* [pitchAlgorithm](#pitchAlgorithm)
 * [repeat](#repeat)
 * [reportBandwidth](#reportbandwidth)
 * [resizeMode](#resizemode)
@@ -354,13 +371,6 @@ For this to work, the poster prop must be set.
 
 Platforms: all
 
-#### automaticallyWaitsToMinimizeStalling
-A Boolean value that indicates whether the player should automatically delay playback in order to minimize stalling. For clients linked against iOS 10.0 and later
-* **false** - Immediately starts playback
-* **true (default)** - Delays playback in order to minimize stalling
-
-Platforms: iOS
-
 #### bufferConfig
 Adjust the buffer settings. This prop takes an object with one or more of the properties listed below.
 
@@ -369,7 +379,7 @@ Property | Type | Description
 minBufferMs | number | The default minimum duration of media that the player will attempt to ensure is buffered at all times, in milliseconds.
 maxBufferMs | number | The default maximum duration of media that the player will attempt to buffer, in milliseconds.
 bufferForPlaybackMs | number | The default duration of media that must be buffered for playback to start or resume following a user action such as a seek, in milliseconds.
-bufferForPlaybackAfterRebufferMs | number | The default duration of media that must be buffered for playback to resume after a rebuffer, in milliseconds. A rebuffer is defined to be caused by buffer depletion rather than a user action.
+playbackAfterRebufferMs | number | The default duration of media that must be buffered for playback to resume after a rebuffer, in milliseconds. A rebuffer is defined to be caused by buffer depletion rather than a user action.
 
 This prop should only be set when you are setting the source, changing it after the media is loaded will cause it to be reloaded.
 
@@ -393,8 +403,6 @@ Determines whether to show player controls.
 Note on iOS, controls are always shown when in fullscreen mode.
 
 For Android MediaPlayer, you will need to build your own controls or use a package like [react-native-video-controls](https://github.com/itsnubix/react-native-video-controls) or [react-native-video-player](https://github.com/cornedor/react-native-video-player).
-
-Note on Android ExoPlayer, native controls are available by default. If needed, you can also add your controls or use a package like [react-native-video-controls].
 
 Platforms: Android ExoPlayer, iOS, react-native-dom
 
@@ -426,7 +434,7 @@ Add video filter
 
 For more details on these filters refer to the [iOS docs](https://developer.apple.com/library/archive/documentation/GraphicsImaging/Reference/CoreImageFilterReference/index.html#//apple_ref/doc/uid/TP30000136-SW55).
 
-Notes: 
+Notes:
 1. Using a filter can impact CPU usage. A workaround is to save the video with the filter and then load the saved video.
 2. Video filter is currently not supported on HLS playlists.
 3. `filterEnabled` must be set to `true`
@@ -434,7 +442,7 @@ Notes:
 Platforms: iOS
 
 #### filterEnabled
-Enable video filter. 
+Enable video filter.
 
 * **false (default)** - Don't enable filter
 * **true** - Enable filter
@@ -446,7 +454,7 @@ Controls whether the player enters fullscreen on play.
 * **false (default)** - Don't display the video in fullscreen
 * **true** - Display the video in fullscreen
 
-Platforms: iOS, Android Exoplayer
+Platforms: iOS
 
 #### fullscreenAutorotate
 If a preferred [fullscreenOrientation](#fullscreenorientation) is set, causes the video to rotate to that orientation but permits rotation of the screen to orientation held by user. Defaults to TRUE.
@@ -455,11 +463,9 @@ Platforms: iOS
 
 #### fullscreenOrientation
 
-* **all (default)** - 
+* **all (default)** -
 * **landscape**
 * **portrait**
-
-Note on Android ExoPlayer, the full-screen mode by default goes into landscape mode. Exiting from the full-screen mode will display the video in Initial orientation.
 
 Platforms: iOS
 
@@ -484,7 +490,7 @@ Platforms: Android ExoPlayer
 #### hideShutterView
 Controls whether the ExoPlayer shutter view (black screen while loading) is enabled.
 
-* **false (default)** - Show shutter view 
+* **false (default)** - Show shutter view
 * **true** - Hide shutter view
 
 Platforms: Android ExoPlayer
@@ -594,8 +600,8 @@ Default: 250.0
 
 Platforms: all
 
-### rate
-Speed at which the media should play. 
+#### rate
+Speed at which the media should play.
 * **0.0** - Pauses the video
 * **1.0** - Play at normal speed
 * **Other values** - Slow down or speed up playback
@@ -603,6 +609,18 @@ Speed at which the media should play.
 Platforms: all
 
 Note: For Android MediaPlayer, rate is only supported on Android 6.0 and higher devices.
+
+#### pitchAlgorithm
+Pitch algorithm for AVPlayerItem. [Apple documentation](https://developer.apple.com/documentation/avfoundation/avaudiotimepitchalgorithm).
+
+By default on iOS pitch algorithm is **lowQualityZeroLatency** which has limitations in allowed playback speed.
+
+* **lowQualityZeroLatency (default)** - A low quality and very low computationally intensive pitch algorithm. This algorithm is suitable for brief fast-forward and rewind effects as well as low quality voice. The rate is snapped to {0.5, 0.666667, 0.8, 1.0, 1.25, 1.5, 2.0}.
+* **spectral** - The highest quality, most computationally expensive pitch algorithm. This algorithm is suitable for voice. It uses a variable rate from 1/32 to 32.
+* **timeDomain** - A modest quality pitch algorithm that is less computationally intensive than the spectral algorithm. This algorithm is suitable for music. It uses a variable rate from 1/32 to 32.
+* **varispeed** - A high quality, no pitch correction algorithm. The pitch varies with rate and supports variable rates from 1/32 to 32.
+
+Platforms: iOS
 
 #### repeat
 Determine whether to repeat the video when the end is reached
@@ -614,8 +632,8 @@ Platforms: all
 #### reportBandwidth
 Determine whether to generate onBandwidthUpdate events. This is needed due to the high frequency of these events on ExoPlayer.
 
-* **false (default)** - Don't generate onBandwidthUpdate events
-* **true** - Generate onBandwidthUpdate events
+* **false (default)** - Generate onBandwidthUpdate events
+* **true** - Don't generate onBandwidthUpdate events
 
 Platforms: Android ExoPlayer
 
@@ -684,7 +702,7 @@ Type | Value | Description
 "language" | string | Display the text track with the language specified as the Value, e.g. "fr"
 "index" | number | Display the text track with the index specified as the value, e.g. 0
 
-Both iOS & Android (only 4.4 and higher) offer Settings to enable Captions for hearing impaired people. If "system" is selected and the Captions Setting is enabled, iOS/Android will look for a caption that matches that customer's language and display it. 
+Both iOS & Android (only 4.4 and higher) offer Settings to enable Captions for hearing impaired people. If "system" is selected and the Captions Setting is enabled, iOS/Android will look for a caption that matches that customer's language and display it.
 
 If a track matching the specified Type (and Value if appropriate) is unavailable, no text track will be displayed. If multiple tracks match the criteria, the first match will be used.
 
@@ -727,7 +745,7 @@ The docs for this prop are incomplete and will be updated as each option is inve
 
 ##### Asset loaded via require
 
-Example: 
+Example:
 ```
 const sintel = require('./sintel.mp4');
 
@@ -939,11 +957,10 @@ duration | number | Length of the media in seconds
 naturalSize | object | Properties:<br> * width - Width in pixels that the video was encoded at<br> * height - Height in pixels that the video was encoded at<br> * orientation - "portrait" or "landscape"
 audioTracks | array | An array of audio track info objects with the following properties:<br> * index - Index number<br> * title - Description of the track<br> * language - 2 letter [ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) or 3 letter [ISO639-2](https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes) language code<br> * type - Mime type of track
 textTracks | array | An array of text track info objects with the following properties:<br> * index - Index number<br> * title - Description of the track<br> * language - 2 letter [ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) or 3 letter [ISO 639-2](https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes) language code<br> * type - Mime type of track
-videoTracks | array | An array of video track info objects with the following properties:<br> * trackId - ID for the track<br> * bitrate - Bit rate in bits per second<br> * codecs - Comma separated list of codecs<br> * height - Height of the video<br> * width - Width of the video
 
 Example:
 ```
-{ 
+{
   canPlaySlowForward: true,
   canPlayReverse: false,
   canPlaySlowReverse: false,
@@ -965,11 +982,6 @@ Example:
     { title: '#1 French', language: 'fr', index: 0, type: 'text/vtt' },
     { title: '#2 English CC', language: 'en', index: 1, type: 'text/vtt' },
     { title: '#3 English Director Commentary', language: 'en', index: 2, type: 'text/vtt' }
-  ],
-  videoTracks: [
-    { bitrate: 3987904, codecs: "avc1.640028", height: 720, trackId: "f1-v1-x3", width: 1280 },
-    { bitrate: 7981888, codecs: "avc1.640028", height: 1080, trackId: "f2-v1-x3", width: 1920 },
-    { bitrate: 1994979, codecs: "avc1.4d401f", height: 480, trackId: "f3-v1-x3", width: 848 }
   ]
 }
 ```
@@ -1086,7 +1098,7 @@ Both the currentTime & seekTime are reported because the video player may not se
 Platforms: Android ExoPlayer, Android MediaPlayer, iOS, Windows UWP
 
 #### onRestoreUserInterfaceForPictureInPictureStop
-Callback function that corresponds to Apple's [`restoreUserInterfaceForPictureInPictureStopWithCompletionHandler`](https://developer.apple.com/documentation/avkit/avpictureinpicturecontrollerdelegate/1614703-pictureinpicturecontroller?language=objc). Call `restoreUserInterfaceForPictureInPictureStopCompleted` inside of this function when done restoring the user interface. 
+Callback function that corresponds to Apple's [`restoreUserInterfaceForPictureInPictureStopWithCompletionHandler`](https://developer.apple.com/documentation/avkit/avpictureinpicturecontrollerdelegate/1614703-pictureinpicturecontroller?language=objc). Call `restoreUserInterfaceForPictureInPictureStopCompleted` inside of this function when done restoring the user interface.
 
 Payload: none
 
@@ -1121,7 +1133,7 @@ Methods operate on a ref to the Video element. You can create a ref using code l
 ```
 return (
   <Video source={...}
-    ref={ref => (this.player = ref)} />
+    ref => (this.player = ref) />
 );
 ```
 
@@ -1160,20 +1172,20 @@ Save video to your Photos with current filter prop. Returns promise.
 
 Example:
 ```
-let response = await this.player.save();
+let response = await this.save();
 let path = response.uri;
 ```
 
 Notes:
  - Currently only supports highest quality export
  - Currently only supports MP4 export
- - Currently only supports exporting to user's cache directory with a generated UUID filename. 
+ - Currently only supports exporting to user's cache directory with a generated UUID filename.
  - User will need to remove the saved video through their Photos app
  - Works with cached videos as well. (Checkout video-caching example)
  - If the video is has not began buffering (e.g. there is no internet connection) then the save function will throw an error.
  - If the video is buffering then the save function promise will return after the video has finished buffering and processing.
 
-Future: 
+Future:
  - Will support multiple qualities through options
  - Will support more formats in the future through options
  - Will support custom directory and file name through options
@@ -1183,7 +1195,7 @@ Platforms: iOS
 #### restoreUserInterfaceForPictureInPictureStopCompleted
 `restoreUserInterfaceForPictureInPictureStopCompleted(restored)`
 
-This function corresponds to the completion handler in Apple's [restoreUserInterfaceForPictureInPictureStop](https://developer.apple.com/documentation/avkit/avpictureinpicturecontrollerdelegate/1614703-pictureinpicturecontroller?language=objc). IMPORTANT: This function must be called after `onRestoreUserInterfaceForPictureInPictureStop` is called. 
+This function corresponds to the completion handler in Apple's [restoreUserInterfaceForPictureInPictureStop](https://developer.apple.com/documentation/avkit/avpictureinpicturecontrollerdelegate/1614703-pictureinpicturecontroller?language=objc). IMPORTANT: This function must be called after `onRestoreUserInterfaceForPictureInPictureStop` is called.
 
 Example:
 ```
